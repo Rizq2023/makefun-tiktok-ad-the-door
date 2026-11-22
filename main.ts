@@ -36,8 +36,29 @@ const repoRoot =
 const outDir =
   process.env.MAKEFUN_OUTPUT_DIR ?? process.env.OUTPUT_DIR ?? '/output';
 
+const videoPath = path.join(repoRoot, 'VIDEO.json');
+
+// Read the video address and check it is usable before copying anything:
+// a missing file, broken JSON or a missing url string is a hard failure
+// with a plain message, not a raw stack trace.
+let videoText;
+try {
+  videoText = fs.readFileSync(videoPath, 'utf8');
+} catch {
+  console.error(`error: cannot read ${videoPath} (missing or unreadable)`);
+  process.exit(1);
+}
+let video;
+try {
+  video = JSON.parse(videoText);
+} catch {
+  console.error(`error: ${videoPath} is not valid JSON`);
+  process.exit(1);
+}
+if (typeof video?.url !== 'string' || video.url.length === 0) {
+  console.error(`error: ${videoPath} must contain a "url" string`);
+  process.exit(1);
+}
+
 fs.mkdirSync(outDir, { recursive: true });
-fs.copyFileSync(
-  path.join(repoRoot, 'VIDEO.json'),
-  path.join(outDir, 'VIDEO.json'),
-);
+fs.writeFileSync(path.join(outDir, 'VIDEO.json'), videoText);
